@@ -44,41 +44,49 @@ public class AstraController : MonoBehaviour
             _bodyStream.Start();
         }
 
-        // set up depth stream
-        if (DepthEnabled)
-        {
-            _depthStream = _streamReader.GetStream<Astra.DepthStream>();
-            var mode = _depthStream.AvailableModes
-                .FirstOrDefault(m =>
-                    m.FramesPerSecond == AstraConstants.Fps
-                    && m.Width == AstraConstants.Width
-                    && m.Height == AstraConstants.Height);
-            if (mode != null)
-            {
-                _depthStream.SetMode(mode);
-            } else {
-                UnityEngine.Debug.LogWarning("Depth mode defined in AstraConstants not available on camera");
-            }
-            _depthStream.Start();
-        }
+    // set up depth stream
+    if (DepthEnabled)
+    {
+        _depthStream = _streamReader.GetStream<Astra.DepthStream>();
+        TrySetStreamMode(_depthStream, "Depth");
+        _depthStream.Start();
+    }
 
-        // set up color stream
-        if (ColorEnabled)
+    // set up color stream
+    if (ColorEnabled)
+    {
+        _colorStream = _streamReader.GetStream<Astra.ColorStream>();
+        TrySetStreamMode(_colorStream, "Color");
+        _colorStream.Start();
+    }
+    }
+
+    // Query the sensor for a mode matching AstraConstants and apply it.
+    // On some firmware/driver combos AvailableModes throws
+    // "astra_imagestream_request_modes: Invalid Operation" when queried before
+    // the stream is started. In that case we fall back to the device default mode
+    // (typically 640x480@30, which matches AstraConstants) and let Start() proceed.
+    private void TrySetStreamMode(Astra.ImageStream stream, string name)
+    {
+        try
         {
-            _colorStream = _streamReader.GetStream<Astra.ColorStream>();
-            var mode = _colorStream.AvailableModes
+            var mode = stream.AvailableModes
                 .FirstOrDefault(m =>
                     m.FramesPerSecond == AstraConstants.Fps
                     && m.Width == AstraConstants.Width
                     && m.Height == AstraConstants.Height);
             if (mode != null)
             {
-                _colorStream.SetMode(mode);
-            } else
-            {
-                UnityEngine.Debug.LogWarning("Color mode defined in AstraConstants not available on camera");
+                stream.SetMode(mode);
             }
-            _colorStream.Start();
+            else
+            {
+                UnityEngine.Debug.LogWarning(name + " mode defined in AstraConstants not available on camera; using device default.");
+            }
+        }
+        catch (Astra.AstraException exc)
+        {
+            UnityEngine.Debug.LogWarning(name + " AvailableModes query failed (" + exc.Message + "); using device default mode.");
         }
     }
 
