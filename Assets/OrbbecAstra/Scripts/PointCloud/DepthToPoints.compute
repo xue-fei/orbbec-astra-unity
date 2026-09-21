@@ -1,0 +1,74 @@
+#pragma kernel DepthToPoints
+
+// Reuses the already-uploaded GPU buffers from DepthToTexture / ColourToTexture:
+//   DepthBuffer  : float[] depth in millimetres (row-major, length = width*height)
+//   ColorBuffer  : float[] RGB, length = width*height*3, byte values 0..255
+// Both upstream compute shaders sample their data with index (width*height - 1 - px),
+// i.e. the Astra raw row order is flipped vertically when mapped to the texture.
+// We use the same flip so depth + colour stay pixel-aligned, then build a real
+// point cloud in camera space (X right, Y up, Z into the scene).
+
+StructuredBuffer<float> DepthBuffer;
+StructuredBuffer<float> ColorBuffer;
+RWStructuredBuffer<float3> PointsPos;
+RWStructuredBuffer<float3> PointsCol;
+
+int width;
+int height;
+float cutOff;     // mm, discard points farther than this
+float scale;      // mm -> m
+float fx;
+float fy;
+float cx;
+float cy;
+int _mirrorX;     // 1 to mirror horizontally
+int _flipY;       // 1 to treat id.y as bottom-up (default true)
+int _hasColor;    // 1 if ColorBuffer is valid
+
+[numthreads(8,8,1)]
+void DepthToPoints(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= (uint)width || id.y >= (uint)height) return;
+
+    uint px = id.x + id.y * (uint)width;
+    uint flippedPx = (uint)width * (uint)height - 1u - px;
+
+    // ---- depth ----
+    float dmm = DepthBuffer[flippedPx];
+    if (dmm <= 0.0 || dmm > cutOff)
+    {
+        // invalid / no-data pixel -> push far away so it is clipped and never drawn
+        PointsPos[px] = float3(1e9, 1e9, 1e9);
+        PointsCol[px] = float3(0, 0, 0);
+        return;
+    }
+
+    float d = dmm * scale;
+
+    // ---- image coordinate (top-left origin) ----
+    float u = id.x;
+    float v = id.y;
+    if (_mirrorX == 1) u = width - 1 - u;
+    if (_flipY   == 1) v = height - 1 - v;
+
+    // ---- pinhole projection (camera space: +X right, +Y up, +Z into scene) ----
+    float X =  (u - cx) * d / fx;
+    float Y = -(v - cy) * d / fy;
+    float Z =  d;
+
+    PointsPos[px] = float3(X, Y, Z);
+
+    // ---- colour ----
+    if (_hasColor == 1)
+    {
+        uint cbase = flippedPx * 3u;
+        PointsCol[px] = float3(
+            ColorBuffer[cbase]     / 255.0,
+            ColorBuffer[cbase + 1u] / 255.0,
+            ColorBuffer[cbase + 2u] / 255.0);
+    }
+    else
+    {
+        PointsCol[px] = float3(1, 1, 1);
+    }
+}

@@ -17,6 +17,9 @@ public class ColourToTexture : MonoBehaviour
     private byte[] _colorMapData;
     private float[] _colorMapDataFloat;
     private ComputeBuffer _colorMapBuffer;
+
+    // Exposed so PointCloudMeshRenderer can reuse the GPU-side RGB buffer directly.
+    public ComputeBuffer ColorBuffer => _colorMapBuffer;
     private int[] _shaderThreads = { 8, 8, 1 };
     private int height, width;
     private long _lastFrameIndex = -1;

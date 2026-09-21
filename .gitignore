@@ -5,3 +5,6 @@ Logs
 Temp
 *.sln
 *.csproj
+astra.log
+.vs
+obj

@@ -22,6 +22,9 @@ public class DepthToTexture : MonoBehaviour
     private float[] _depthFrameDataFloat;
     private ComputeBuffer _depthBuffer;
 
+    // Exposed so PointCloudMeshRenderer can reuse the GPU-side depth buffer directly.
+    public ComputeBuffer DepthBuffer => _depthBuffer;
+
     private void Start()
     {
         Assert.IsTrue(AstraController.Instance.DepthEnabled);
