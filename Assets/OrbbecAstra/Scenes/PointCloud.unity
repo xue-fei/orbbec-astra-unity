@@ -340,7 +340,7 @@ MonoBehaviour:
   cy: 240
   scale: 0.01
   cutOff: 10000
-  pointSize: 0.005
+  pointSize: 0.001
   flipY: 1
   mirrorX: 0
 --- !u!1 &1778038510

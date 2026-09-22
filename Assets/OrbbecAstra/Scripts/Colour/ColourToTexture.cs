@@ -34,11 +34,6 @@ public class ColourToTexture : MonoBehaviour
         _colorMapData = new byte[width * height * numColorChannels];
         _colorMapDataFloat = new float[width * height * numColorChannels];
         _colorMapBuffer = new ComputeBuffer(width * height * numColorChannels, sizeof(float));
-    }
-
-    void Update()
-    {
-        AstraController.Instance.OnColorFrameEvent += OnNewFrame;
         InitRenderTextures();
     }
 

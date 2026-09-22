@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/OrbbecAstra/Scenes/PointCloud.unity
+    guid: 962d7472f7176454f9550a469fbc03b1
   m_configObjects: {}
